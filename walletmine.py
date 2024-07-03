@@ -1,0 +1,118 @@
+import asyncio
+import time
+from datetime import datetime
+from rich.panel import Panel
+from rich.console import Console
+from mnemonic import Mnemonic
+from eth_account import Account
+import aiohttp
+
+# Initialize necessary objects
+console = Console()
+
+
+# Function to check balance using an Ethereum API asynchronously
+async def balance(addr, session):
+    url = f"https://ethereum.atomicwallet.io/api/v2/address/{addr}"
+    async with session.get(url) as response:
+        if response.status == 200:
+            data = await response.json()
+            balance_eth = float(data["balance"])
+            return balance_eth, datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        else:
+            return 0.0, None
+
+# Function to check transaction count using the Ethereum API asynchronously
+async def transaction(addr, session):
+    url = f"https://ethereum.atomicwallet.io/api/v2/address/{addr}"
+    async with session.get(url) as response:
+        if response.status == 200:
+            data = await response.json()
+            txs = int(data["txs"])
+            return txs, datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        else:
+            return 0, None
+
+# Main function
+async def main():
+    total_checked = 0
+    total_wins = 0
+    total_balance = 0.0  # To store the total balance found
+    first_run = True  # Flag to indicate if it's the first run
+    term = Console()
+
+    async with aiohttp.ClientSession() as session:
+        Account.enable_unaudited_hdwallet_features()  # Enable Mnemonic features
+        while True:
+            try:
+                # Generate new 12-word mnemonic passphrase
+                mne = Mnemonic("english")
+                words = mne.generate(strength=128)  # 128 bits for 12 words
+                words_split = ' '.join(words.split()[0:12])  # Ensure exactly 12 words
+
+                # Derive Ethereum address from mnemonic
+                acct = Account.from_mnemonic(words)
+                addr = addr = acct.address
+
+                # Perform balance and transaction checks asynchronously
+                start_time = time.time()
+                bal_task = balance(addr, session)
+                txs_task = transaction(addr, session)
+
+                # Await results
+                bal, bal_time = await bal_task
+                txs, txs_time = await txs_task
+                response_time = time.time() - start_time  # Calculate response time
+
+                # Add balance to total_balance only if API call is successful
+                if bal_time is not None:
+                    total_balance += bal
+
+                # Determine color for Total Balance based on whether any balance is added
+                if total_balance > 0:
+                    total_balance_color = "blue"
+                else:
+                    total_balance_color = "white"
+
+                # Determine color for Total Wins based on whether balance is greater than 0
+                total_wins_color = "red" if bal > 0 else "gray88"
+
+                # Prepare panel content with alignment
+                panel_content = (
+
+                    f"[b magenta]  [/]\n"
+                    f"[ad00ff]Total Checked: [fff]{'{: <4}'.format(total_checked)}[/] "
+                    f"[ad00ff]Total Wins: [{total_wins_color}]{total_wins:^4}[/] "
+                    f"[ad00ff]Total Balance: [{total_balance_color}]{total_balance:>20.16f} ETH[/]\n"
+                    f"[b magenta]  [/]\n"
+                    f"[ad00ff]Address: [fff]{addr}\n"
+                    f"Mnemonic: {words_split}\n"
+                    f"Balance: [green]{bal:.16f} ETH (Updated: {bal_time})[/]\n"
+                    f"Transactions: [blue]{txs} (Updated: {txs_time})[/]\n"
+                    f"[b magenta]  [/]\n"
+                    f"[pink]Response Time: [fff]{response_time:.4f} seconds[/]\n"
+                )
+
+                if not first_run:
+                    console.print("\x1b\x1b")  # Clear screen before printing new content
+
+                console.print(Panel(panel_content, title="www.coinscan.cc", border_style="#ad00ff"))
+                first_run = False
+
+                total_checked += 1
+                if bal > 0:
+                    total_wins += 1
+
+                await asyncio.sleep(0.000)  # Adjust sleep time as needed for faster scanning
+
+            except KeyboardInterrupt:
+                print("\n\nScan interrupted. Exiting...")
+                break
+            except Exception as e:
+                print(f"Error: {e}")
+                continue
+
+if __name__ == "__main__":
+    start_time = time.time()
+    asyncio.run(main())
+    print(f"Execution time: {time.time() - start_time} seconds")
