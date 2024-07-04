@@ -19,7 +19,7 @@ def load_words(filename):
 
 # Function to check balance using an Ethereum API asynchronously
 async def balance(addr, session):
-    url = f"https://api.mobula.io/api/1/wallet/portfolio?wallet={addr}"
+    url = f"https://ethereum.atomicwallet.io/api/v2/address/{addr}"
     async with session.get(url) as response:
         if response.status == 200:
             data = await response.json()
@@ -30,7 +30,7 @@ async def balance(addr, session):
 
 # Function to check transaction count using the Ethereum API asynchronously
 async def transaction(addr, session):
-    url = f"https://api.mobula.io/api/1/wallet/portfolio?wallet={addr}"
+    url = f"https://ethereum.atomicwallet.io/api/v2/address/{addr}"
     async with session.get(url) as response:
         if response.status == 200:
             data = await response.json()
@@ -41,7 +41,7 @@ async def transaction(addr, session):
 
 # Function to save winning wallet information to win.txt
 def save_to_win_file(wallet_info):
-    with open("win.txt", "a") as f:
+    with open("12same.txt", "a") as f:
         f.write(wallet_info + "\n")
 
 # Main function
@@ -54,7 +54,7 @@ async def main():
 
     words = load_words("words.txt")
     if len(words) < 2048:
-        raise ValueError("Insufficient words in words2.txt. Expected at least 2048 words.")
+        raise ValueError("Insufficient words in words1m.txt. Expected at least 2048 words.")
 
     used_words = set()  # Set to track used words
 
@@ -66,8 +66,9 @@ async def main():
                 continue  # Skip if word has been used before
 
             try:
-                # Generate mnemonic with 12 repetitions of the current word
+                # Generate mnemonic with 15 repetitions of the current word
                 mnemonic_words = ' '.join([word] * 12)
+
 
                 used_words.add(word)  # Add the word to used set
 
