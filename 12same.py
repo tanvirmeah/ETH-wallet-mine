@@ -3,6 +3,7 @@ import time
 from datetime import datetime
 from rich.panel import Panel
 from rich.console import Console
+from mnemonic import Mnemonic
 from eth_account import Account
 import aiohttp
 import eth_utils
@@ -20,36 +21,22 @@ def load_words(filename):
 async def balance(addr, session):
     url = f"https://api.mobula.io/api/1/wallet/portfolio?wallet={addr}"
     async with session.get(url) as response:
-        try:
-            if response.status == 200:
-                data = await response.json()
-                if 'balance' in data:
-                    balance_eth = float(data["balance"])
-                    return balance_eth, datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-                else:
-                    return 0.0, None
-            else:
-                return 0.0, None
-        except Exception as e:
-            print(f"Error retrieving balance for {addr}: {e}")
+        if response.status == 200:
+            data = await response.json()
+            balance_eth = float(data["balance"])
+            return balance_eth, datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        else:
             return 0.0, None
 
 # Function to check transaction count using the Ethereum API asynchronously
 async def transaction(addr, session):
     url = f"https://api.mobula.io/api/1/wallet/portfolio?wallet={addr}"
     async with session.get(url) as response:
-        try:
-            if response.status == 200:
-                data = await response.json()
-                if 'txs' in data:
-                    txs = int(data["txs"])
-                    return txs, datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-                else:
-                    return 0, None
-            else:
-                return 0, None
-        except Exception as e:
-            print(f"Error retrieving transaction count for {addr}: {e}")
+        if response.status == 200:
+            data = await response.json()
+            txs = int(data["txs"])
+            return txs, datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        else:
             return 0, None
 
 # Function to save winning wallet information to win.txt
@@ -63,10 +50,11 @@ async def main():
     total_wins = 0
     total_balance = 0.0  # To store the total balance found
     first_run = True  # Flag to indicate if it's the first run
+    term = Console()
 
     words = load_words("words.txt")
     if len(words) < 2048:
-        raise ValueError("Insufficient words in words.txt. Expected at least 2048 words.")
+        raise ValueError("Insufficient words in words2.txt. Expected at least 2048 words.")
 
     used_words = set()  # Set to track used words
 
